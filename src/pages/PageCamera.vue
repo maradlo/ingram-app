@@ -11,14 +11,14 @@
     </div>
 
     <div class="text-center q-pa-md">
-      <q-btn v-if="hasCameraSupport" @click="captureImage" size="lg" round color="grey-10" icon="eva-camera" />
+      <q-btn v-if="hasCameraSupport" :disabled="imageCaptured" @click="captureImage" size="lg" round color="grey-10" icon="eva-camera" />
       <q-file v-else outlined v-model="imageUpload" accept="image/*" label="Choose an image" @input="captureImageFallback">
         <template v-slot:prepend>
           <q-icon name="eva-attach-outline" />
         </template>
       </q-file>
       <div class="row justify-center q-ma-md">
-        <q-input class="col col-sm-6" v-model="post.caption" label="Caption" dense />
+        <q-input class="col col-sm-6" v-model="post.caption" label="Caption *" dense />
       </div>
 
       <div class="row justify-center q-ma-md">
@@ -30,7 +30,7 @@
       </div>
 
       <div class="row justify-center q-mt-lg">
-        <q-btn unelevated rounded color="primary" label="Post Image" />
+        <q-btn @click="addPost" :disabled="!post.caption || !post.photo" unelevated rounded color="primary" label="Post Image" />
       </div>
     </div>
   </q-page>
@@ -149,7 +149,33 @@ export default {
         message: 'Could not find your location'
       })
       this.locationLoading = false;
-    }
+    },
+    addPost() {
+      this.$q.loading.show();
+      let formData = new FormData();
+      formData.append('id', this.post.id);
+      formData.append('caption', this.post.caption);
+      formData.append('location', this.post.location);
+      formData.append('date', this.post.date);
+      formData.append('file', this.post.photo, this.post.id + '.png');
+
+      this.$axios.post(`${process.env.API_URL}/createPost`, formData).then(response => {
+        this.$router.push('/');
+        this.$q.notify({
+          message: 'Post created!',
+          actions: [
+            { label: 'Dismiss', color: 'white'}
+          ]
+        })
+        this.$q.loading.hide();
+      }).catch(err => {
+        this.$q.dialog({
+          title: 'Error',
+          message: 'Sorry, could not create post!'
+        })
+        this.$q.loading.hide();
+      })
+    },
   },
   mounted() {
     this.initCamera();
