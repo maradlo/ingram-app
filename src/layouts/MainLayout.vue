@@ -11,26 +11,79 @@
       </q-toolbar>
     </q-header>
 
-    <q-footer class="bg-white small-screen-only" bordered>
-      <q-tabs class="text-grey-10" active-color="primary" indicator-color="transparent">
+    <q-footer class="bg-white" bordered>
+      <transition apper enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">
+        <div v-if="showAppInstallBanner" class="banner-container bg-primary">
+          <div class="constrain">
+            <q-banner inline-actions class="bg-primary text-white">
+              <template>
+                <q-avatar color="white" text-color="grey-10" icon="eva-camera-outline" font-size="22px" />
+              </template>
+              <b>
+                Ingram
+              </b>
+              <template v-slot:action>
+                <q-btn @click="installApp" dense class="q-px-sm" flat label="Yes" />
+                <q-btn @click="showAppInstallBanner = false" dense class="q-px-sm" flat label="Later" />
+                <q-btn @click="neverShowAppInstallBanner" dense class="q-px-sm" flat label="Never" />
+              </template>
+            </q-banner>
+          </div>
+        </div>
+      </transition>
+
+      <q-tabs class="text-grey-10 small-screen-only" active-color="primary" indicator-color="transparent">
         <q-route-tab to="/" icon="eva-home-outline" />
         <q-route-tab to="/camera" icon="eva-camera-outline" />
       </q-tabs>
     </q-footer>
 
     <q-page-container class="bg-grey-1">
-      <router-view />
+      <keep-alive :include="['PageHome']">
+        <router-view />
+      </keep-alive>
     </q-page-container>
   </q-layout>
 </template>
 
 <script>
+let deferredPrompt;
 
 export default {
   name: 'MainLayout',
   data () {
     return {
+      showAppInstallBanner: false
+    }
+  },
+  methods: {
+    installApp() {
+      this.showAppInstallBanner = false;
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult === 'accepted') {
+          console.log('accepted');
+        } else {
+          console.log('declined');
+        }
+      })
+    },
+    neverShowAppInstallBanner() {
+      this.showAppInstallBanner = false;
+      this.$q.localStorage.set('neverShowAppInstallBanner', true);
+    }
+  },
+  mounted() {
+    let neverShowAppInstallBanner = this.$q.localStorage.getItem('neverShowAppInstallBanner');
 
+    if (!neverShowAppInstallBanner) {
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        setTimeout(() => {
+          this.showAppInstallBanner = true;
+        },3000)
+      })
     }
   }
 }
